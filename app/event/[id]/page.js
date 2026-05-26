@@ -20,6 +20,7 @@ export default function EventPage({ params }) {
   const [eventName, setEventName] = useState("載入中...");
   const [cnyRate, setCnyRate] = useState(4.5); // 人民幣匯率預設 4.5
   const [shippingRate, setShippingRate] = useState(12); // 每公斤運費預設 ¥12
+  const [hasSurcharge, setHasSurcharge] = useState(false); // 是否手動加收 ¥20 附加費
   
   // 列表資料狀態
   const [members, setMembers] = useState([]);
@@ -36,7 +37,7 @@ export default function EventPage({ params }) {
   const [expenseAmount, setExpenseAmount] = useState("");
   const [expenseType, setExpenseType] = useState("weight");
 
-  // 1. 監聽主事件文件（讀取與同步 匯率、運費設定）
+  // 1. 監聽主事件文件（讀取與同步 匯率、運費、勾選狀態）
   useEffect(() => {
     if (!eventId) return;
     const eventRef = doc(db, "events", eventId);
@@ -47,6 +48,7 @@ export default function EventPage({ params }) {
         setEventName(data.name || "未命名團購");
         if (data.cnyRate !== undefined) setCnyRate(data.cnyRate);
         if (data.shippingRate !== undefined) setShippingRate(data.shippingRate);
+        if (data.hasSurcharge !== undefined) setHasSurcharge(data.hasSurcharge);
       }
     });
 
@@ -82,6 +84,14 @@ export default function EventPage({ params }) {
     await updateDoc(doc(db, "events", eventId), {
       cnyRate: Number(rate),
       shippingRate: Number(shipping)
+    });
+  };
+
+  // 3b. 修改「是否加收附加費」並同步到 Firebase
+  const handleUpdateSurcharge = async (checked) => {
+    if (!eventId) return;
+    await updateDoc(doc(db, "events", eventId), {
+      hasSurcharge: checked
     });
   };
 
@@ -141,10 +151,21 @@ export default function EventPage({ params }) {
           <label style={{ display: "block", fontSize: "14px", color: "#666", marginBottom: "5px", fontWeight: "bold" }}>每公斤運費 (¥ CNY)</label>
           <input type="number" value={shippingRate} onChange={(e) => { setShippingRate(e.target.value); handleUpdateSettings(cnyRate, e.target.value); }} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
         </div>
-        <div style={{ backgroundColor: "#fff3cd", padding: "12px", borderRadius: "8px", border: "1px solid #ffeeba", boxSizing: "border-box" }}>
-          <span style={{ display: "block", fontSize: "12px", color: "#856404", fontWeight: "bold" }}>📊 當前物流狀態總計</span>
-          <span style={{ fontSize: "18px", fontWeight: "bold", color: "#856404" }}>總重量：{totalWeight.toFixed(2)} kg</span>
-          {totalWeight > 0 && totalWeight < 10 && <div style={{ fontSize: "12px", color: "#dc3545", marginTop: "4px", fontWeight: "bold" }}>⚠️ 不足 10kg，全團自動加收 ¥20 派送費</div>}
+        
+        {/* 物流狀態總計與自訂加收勾選方塊 */}
+        <div style={{ backgroundColor: hasSurcharge ? "#fff3cd" : "#e2e3e5", padding: "12px", borderRadius: "8px", border: hasSurcharge ? "1px solid #ffeeba" : "1px solid #d6d8db", boxSizing: "border-box", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <span style={{ display: "block", fontSize: "12px", color: hasSurcharge ? "#856404" : "#383d41", fontWeight: "bold" }}>📊 物流狀態與附加費設定</span>
+          <span style={{ fontSize: "16px", fontWeight: "bold", color: hasSurcharge ? "#856404" : "#383d41" }}>總重量：{totalWeight.toFixed(2)} kg</span>
+          
+          <label style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px", cursor: "pointer", fontSize: "13px", fontWeight: "bold", color: hasSurcharge ? "#856404" : "#383d41" }}>
+            <input 
+              type="checkbox" 
+              checked={hasSurcharge} 
+              onChange={(e) => { setHasSurcharge(e.target.checked); handleUpdateSurcharge(e.target.checked); }} 
+              style={{ width: "16px", height: "16px", cursor: "pointer" }}
+            />
+            ⚠️ 全團加收 ¥20 派送費 (手動控制)
+          </label>
         </div>
       </div>
 
@@ -165,67 +186,65 @@ export default function EventPage({ params }) {
           </div>
         </div>
 
-        {/* 卡片 2：新增代購商品 */}
-      <div style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)", boxSizing: "border-box" }}>
-        <h2 style={{ marginTop: 0, fontSize: "18px", color: "#28a745", borderBottom: "2px solid #eef2f7", paddingBottom: "10px" }}>🛒 登記商品 (¥ 人民幣)</h2>
-        
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "15px" }}>
-          {/* 商品名稱與購買人：加上 flexWrap 確保不超出 */}
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <input placeholder="商品名稱" value={itemName} onChange={(e)=>setItemName(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
-            <select value={itemBuyer} onChange={(e)=>setItemBuyer(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}>
-              <option value="">選擇購買人</option>
-              {members.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+        {/* 卡片 2：登記商品（已修正寬度超出問題） */}
+        <div style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)", boxSizing: "border-box" }}>
+          <h2 style={{ marginTop: 0, fontSize: "18px", color: "#28a745", borderBottom: "2px solid #eef2f7", paddingBottom: "10px" }}>🛒 登記商品 (¥ 人民幣)</h2>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "15px" }}>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <input placeholder="商品名稱" value={itemName} onChange={(e)=>setItemName(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+              <select value={itemBuyer} onChange={(e)=>setItemBuyer(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}>
+                <option value="">選擇購買人</option>
+                {members.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <input placeholder="價格 (¥)" type="number" value={itemPrice} onChange={(e)=>setItemPrice(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+              <input placeholder="重量 (kg)" type="number" value={itemWeight} onChange={(e)=>setItemWeight(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+            </div>
+          </div>
+          
+          <button onClick={addItem} style={{ width: "100%", padding: "12px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "15px" }}>新增商品明細</button>
+
+          <div style={{ marginTop: "15px", maxHeight: "250px", overflowY: "auto", borderTop: "1px solid #eee", paddingTop: "10px" }}>
+            {items.length === 0 && <div style={{ color: "#999", textAlign: "center", padding: "15px", fontSize: "14px" }}>尚未新增商品</div>}
+            {items.map(item => (
+              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "#f8f9fa", borderRadius: "8px", marginBottom: "8px", fontSize: "14px", boxSizing: "border-box" }}>
+                <div style={{ flex: 1 }}>
+                  <strong style={{ color: "#333" }}>{item.name}</strong> <span style={{ color: "#666", fontSize: "12px" }}>({item.buyer})</span>
+                  <div style={{ fontSize: "12px", color: "#666", marginTop: "2px" }}>¥{item.price} ({item.weight}kg) ➜ NT$ {(item.price * cnyRate).toFixed(0)}</div>
+                </div>
+                <button onClick={() => removeItem(item.id)} style={{ backgroundColor: "#dc3545", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}>刪除</button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 卡片 3：台灣本地雜費（已修正寬度超出問題） */}
+        <div style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)", boxSizing: "border-box" }}>
+          <h2 style={{ marginTop: 0, fontSize: "18px", color: "#fd7e14", borderBottom: "2px solid #eef2f7", paddingBottom: "10px" }}>🚚 台灣在地費用 (NT$ 外部支出)</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "15px" }}>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <input placeholder="項目 (如:台灣店到店)" value={expenseName} onChange={(e)=>setExpenseName(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+              <input placeholder="金額 (NT$)" type="number" value={expenseAmount} onChange={(e)=>setExpenseAmount(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+            </div>
+            <select value={expenseType} onChange={(e)=>setExpenseType(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}>
+              <option value="weight">依集運重量比例分攤</option>
+              <option value="equal">按參與人頭平攤</option>
             </select>
           </div>
-          {/* 價格與重量：加上 flexWrap 確保不超出 */}
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <input placeholder="價格 (¥)" type="number" value={itemPrice} onChange={(e)=>setItemPrice(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
-            <input placeholder="重量 (kg)" type="number" value={itemWeight} onChange={(e)=>setItemWeight(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
-          </div>
+          <button onClick={addExpense} style={{ width: "100%", padding: "10px", backgroundColor: "#fd7e14", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>新增額外費用</button>
         </div>
-        
-        <button onClick={addItem} style={{ width: "100%", padding: "12px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "15px" }}>新增商品明細</button>
 
-        {/* 下方列表維持原樣... */}
-        <div style={{ marginTop: "15px", maxHeight: "250px", overflowY: "auto", borderTop: "1px solid #eee", paddingTop: "10px" }}>
-          {items.length === 0 && <div style={{ color: "#999", textAlign: "center", padding: "15px", fontSize: "14px" }}>尚未新增商品</div>}
-          {items.map(item => (
-            <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "#f8f9fa", borderRadius: "8px", marginBottom: "8px", fontSize: "14px", boxSizing: "border-box" }}>
-              <div style={{ flex: 1 }}>
-                <strong style={{ color: "#333" }}>{item.name}</strong> <span style={{ color: "#666", fontSize: "12px" }}>({item.buyer})</span>
-                <div style={{ fontSize: "12px", color: "#666", marginTop: "2px" }}>¥{item.price} ({item.weight}kg) ➜ NT$ {(item.price * cnyRate).toFixed(0)}</div>
-              </div>
-              <button onClick={() => removeItem(item.id)} style={{ backgroundColor: "#dc3545", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}>刪除</button>
-            </div>
-          ))}
-        </div>
       </div>
 
-      {/* 卡片 3：台灣本地雜費 */}
-      <div style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)", boxSizing: "border-box" }}>
-        <h2 style={{ marginTop: 0, fontSize: "18px", color: "#fd7e14", borderBottom: "2px solid #eef2f7", paddingBottom: "10px" }}>🚚 台灣在地費用 (NT$ 外部支出)</h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "15px" }}>
-          {/* 項目與金額：加上 flexWrap 確保不超出 */}
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <input placeholder="項目 (如:台灣店到店)" value={expenseName} onChange={(e)=>setExpenseName(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
-            <input placeholder="金額 (NT$)" type="number" value={expenseAmount} onChange={(e)=>setExpenseAmount(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
-          </div>
-          <select value={expenseType} onChange={(e)=>setExpenseType(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}>
-            <option value="weight">依集運重量比例分攤</option>
-            <option value="equal">按參與人頭平攤</option>
-          </select>
-        </div>
-        <button onClick={addExpense} style={{ width: "100%", padding: "10px", backgroundColor: "#fd7e14", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>新增額外費用</button>
-      </div>
-
-      {/* 🎯 最終全自動換算結算報表（全面改為全新要求的「每人獨立精準運費」邏輯） */}
+      {/* 🎯 最終全自動換算結算報表 */}
       <div style={{ marginTop: "30px", backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 4px 10px rgba(0,0,0,0.08)", boxSizing: "border-box" }}>
         <h2 style={{ marginTop: 0, color: "#343a40", borderBottom: "3px solid #007bff", paddingBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
           <span style={{ fontSize: "20px" }}>💰 最終自動結算報表 (新台幣 NT$)</span>
           <span style={{ fontSize: "14px", color: "#666", fontWeight: "normal" }}>
             總重量: {totalWeight.toFixed(2)} kg 
-            {totalWeight > 0 && totalWeight < 10 ? " (⚠️未滿 10kg 已包含平攤 ¥20)" : ""}
+            {hasSurcharge ? " (⚠️ 已手動包含平攤附加費 ¥20)" : ""}
           </span>
         </h2>
 
@@ -236,17 +255,17 @@ export default function EventPage({ params }) {
             const itemTotalTWD = itemTotalCNY * cnyRate; 
             const memberWeight = memberItems.reduce((sum, i) => sum + i.weight, 0);
 
-            // 1. ✅ 每個人自己獨立計算專屬基礎運費 = 個人重量 × 每公斤運費(CNY) × 匯率(TWD)
+            // 1. 每個人自己獨立計算專屬基礎運費 = 個人重量 × 每公斤運費(CNY) × 匯率(TWD) 
             const memberBaseShippingTWD = memberWeight * shippingRate * cnyRate;
 
-            // 2. ✅ 整筆訂單只加一次的「未滿 10kg +¥20」罰金，依重量權重比例攤到個人身上
+            // 2. 根據手動勾選狀態決定是否加入 ¥20 罰金，依重量權重比例攤到個人身上 
             let memberSurchargeTWD = 0;
-            if (totalWeight > 0 && totalWeight < 10) {
+            if (hasSurcharge && totalWeight > 0) {
               const totalSurchargeTWD = 20 * cnyRate;
               memberSurchargeTWD = totalSurchargeTWD * (memberWeight / totalWeight);
             }
 
-            // 3. 完美的個人專屬國際運費總額
+            // 3. 個人專屬國際運費總額
             const memberTotalShippingTWD = memberBaseShippingTWD + memberSurchargeTWD;
 
             // 4. 計算台灣本地雜費分攤
@@ -259,7 +278,7 @@ export default function EventPage({ params }) {
               }
             });
 
-            // 5. 最終帳單完美統一轉為台幣加總
+            // 5. 最終應付總計
             const finalMemberTotal = itemTotalTWD + memberTotalShippingTWD + localExpenseTWD;
 
             return (
@@ -272,7 +291,7 @@ export default function EventPage({ params }) {
                   {/* 精確且名目清晰的集運欄位 */}
                   <div>✈️ 國際集運：<span style={{ float: "right", fontWeight: "500" }}>NT$ {memberTotalShippingTWD.toFixed(0)}</span></div>
                   <div style={{ fontSize: "11px", color: "#999", textAlign: "right", marginBottom: "4px" }}>
-                    ({memberWeight.toFixed(2)}kg × ¥{shippingRate} {memberSurchargeTWD > 0 ? `+ 罰金 NT$${memberSurchargeTWD.toFixed(0)}` : ""})
+                    ({memberWeight.toFixed(2)}kg × ¥{shippingRate} {memberSurchargeTWD > 0 ? `+ 附加費 NT$${memberSurchargeTWD.toFixed(0)}` : ""})
                   </div>
                   
                   <div>🏡 在地雜費：<span style={{ float: "right", fontWeight: "500" }}>NT$ {localExpenseTWD.toFixed(0)}</span></div>
