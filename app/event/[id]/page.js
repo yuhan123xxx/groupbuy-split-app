@@ -165,56 +165,58 @@ export default function EventPage({ params }) {
           </div>
         </div>
 
-        {/* 卡片 2：新增代購商品（已修正寬度超出問題） */}
-        <div style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)", boxSizing: "border-box" }}>
-          <h2 style={{ marginTop: 0, fontSize: "18px", color: "#28a745", borderBottom: "2px solid #eef2f7", paddingBottom: "10px" }}>🛒 登記商品 (¥ 人民幣)</h2>
-          
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "15px" }}>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <input placeholder="商品名稱" value={itemName} onChange={(e)=>setItemName(e.target.value)} style={{ flex: 1, padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
-              <select value={itemBuyer} onChange={(e)=>setItemBuyer(e.target.value)} style={{ flex: 1, padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}>
-                <option value="">選擇購買人</option>
-                {members.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
-              </select>
-            </div>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <input placeholder="價格 (¥)" type="number" value={itemPrice} onChange={(e)=>setItemPrice(e.target.value)} style={{ flex: 1, padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
-              <input placeholder="重量 (kg)" type="number" value={itemWeight} onChange={(e)=>setItemWeight(e.target.value)} style={{ flex: 1, padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
-            </div>
-          </div>
-          
-          <button onClick={addItem} style={{ width: "100%", padding: "12px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "15px" }}>新增商品明細</button>
-
-          <div style={{ marginTop: "15px", maxHeight: "250px", overflowY: "auto", borderTop: "1px solid #eee", paddingTop: "10px" }}>
-            {items.length === 0 && <div style={{ color: "#999", textAlign: "center", padding: "15px", fontSize: "14px" }}>尚未新增商品</div>}
-            {items.map(item => (
-              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "#f8f9fa", borderRadius: "8px", marginBottom: "8px", fontSize: "14px", boxSizing: "border-box" }}>
-                <div style={{ flex: 1 }}>
-                  <strong style={{ color: "#333" }}>{item.name}</strong> <span style={{ color: "#666", fontSize: "12px" }}>({item.buyer})</span>
-                  <div style={{ fontSize: "12px", color: "#666", marginTop: "2px" }}>¥{item.price} ({item.weight}kg) ➜ NT$ {(item.price * cnyRate).toFixed(0)}</div>
-                </div>
-                <button onClick={() => removeItem(item.id)} style={{ backgroundColor: "#dc3545", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}>刪除</button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 卡片 3：台灣本地雜費（已修正寬度超出問題） */}
-        <div style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)", boxSizing: "border-box" }}>
-          <h2 style={{ marginTop: 0, fontSize: "18px", color: "#fd7e14", borderBottom: "2px solid #eef2f7", paddingBottom: "10px" }}>🚚 台灣在地費用 (NT$ 外部支出)</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "15px" }}>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <input placeholder="項目 (如:台灣店到店)" value={expenseName} onChange={(e)=>setExpenseName(e.target.value)} style={{ flex: 1, padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
-              <input placeholder="金額 (NT$)" type="number" value={expenseAmount} onChange={(e)=>setExpenseAmount(e.target.value)} style={{ flex: 1, padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
-            </div>
-            <select value={expenseType} onChange={(e)=>setExpenseType(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}>
-              <option value="weight">依集運重量比例分攤</option>
-              <option value="equal">按參與人頭平攤</option>
+        {/* 卡片 2：新增代購商品 */}
+      <div style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)", boxSizing: "border-box" }}>
+        <h2 style={{ marginTop: 0, fontSize: "18px", color: "#28a745", borderBottom: "2px solid #eef2f7", paddingBottom: "10px" }}>🛒 登記商品 (¥ 人民幣)</h2>
+        
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "15px" }}>
+          {/* 商品名稱與購買人：加上 flexWrap 確保不超出 */}
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <input placeholder="商品名稱" value={itemName} onChange={(e)=>setItemName(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+            <select value={itemBuyer} onChange={(e)=>setItemBuyer(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}>
+              <option value="">選擇購買人</option>
+              {members.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}
             </select>
           </div>
-          <button onClick={addExpense} style={{ width: "100%", padding: "10px", backgroundColor: "#fd7e14", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>新增額外費用</button>
+          {/* 價格與重量：加上 flexWrap 確保不超出 */}
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <input placeholder="價格 (¥)" type="number" value={itemPrice} onChange={(e)=>setItemPrice(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+            <input placeholder="重量 (kg)" type="number" value={itemWeight} onChange={(e)=>setItemWeight(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+          </div>
         </div>
+        
+        <button onClick={addItem} style={{ width: "100%", padding: "12px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "15px" }}>新增商品明細</button>
 
+        {/* 下方列表維持原樣... */}
+        <div style={{ marginTop: "15px", maxHeight: "250px", overflowY: "auto", borderTop: "1px solid #eee", paddingTop: "10px" }}>
+          {items.length === 0 && <div style={{ color: "#999", textAlign: "center", padding: "15px", fontSize: "14px" }}>尚未新增商品</div>}
+          {items.map(item => (
+            <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", backgroundColor: "#f8f9fa", borderRadius: "8px", marginBottom: "8px", fontSize: "14px", boxSizing: "border-box" }}>
+              <div style={{ flex: 1 }}>
+                <strong style={{ color: "#333" }}>{item.name}</strong> <span style={{ color: "#666", fontSize: "12px" }}>({item.buyer})</span>
+                <div style={{ fontSize: "12px", color: "#666", marginTop: "2px" }}>¥{item.price} ({item.weight}kg) ➜ NT$ {(item.price * cnyRate).toFixed(0)}</div>
+              </div>
+              <button onClick={() => removeItem(item.id)} style={{ backgroundColor: "#dc3545", color: "white", border: "none", padding: "6px 10px", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}>刪除</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 卡片 3：台灣本地雜費 */}
+      <div style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "12px", boxShadow: "0 2px 4px rgba(0,0,0,0.05)", boxSizing: "border-box" }}>
+        <h2 style={{ marginTop: 0, fontSize: "18px", color: "#fd7e14", borderBottom: "2px solid #eef2f7", paddingBottom: "10px" }}>🚚 台灣在地費用 (NT$ 外部支出)</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "15px" }}>
+          {/* 項目與金額：加上 flexWrap 確保不超出 */}
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <input placeholder="項目 (如:台灣店到店)" value={expenseName} onChange={(e)=>setExpenseName(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+            <input placeholder="金額 (NT$)" type="number" value={expenseAmount} onChange={(e)=>setExpenseAmount(e.target.value)} style={{ flex: "1 1 140px", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+          </div>
+          <select value={expenseType} onChange={(e)=>setExpenseType(e.target.value)} style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }}>
+            <option value="weight">依集運重量比例分攤</option>
+            <option value="equal">按參與人頭平攤</option>
+          </select>
+        </div>
+        <button onClick={addExpense} style={{ width: "100%", padding: "10px", backgroundColor: "#fd7e14", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>新增額外費用</button>
       </div>
 
       {/* 🎯 最終全自動換算結算報表（全面改為全新要求的「每人獨立精準運費」邏輯） */}
